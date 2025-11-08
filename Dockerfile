@@ -1,14 +1,15 @@
-# build stage
-FROM eclipse-temurin:17-jdk AS build
+# build stage: use Java 21 JDK
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 COPY . .
-# use the Gradle wrapper to build the fat jar
+RUN chmod +x ./gradlew
+# build the Spring Boot fat jar (skip tests for faster builds)
 RUN ./gradlew bootJar --no-daemon -x test
 
-# runtime stage
-FROM eclipse-temurin:17-jre
+# runtime stage: use Java 21 JRE
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
-# let container runtime give the port via PORT env var
+# let platform supply PORT (fallback to 8080)
 ENV SERVER_PORT=${PORT:-8080}
 ENTRYPOINT ["sh","-c","java -Dserver.port=$SERVER_PORT -jar /app.jar"]
